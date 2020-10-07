@@ -1,19 +1,24 @@
 package customhashmap;
 
 public class CustomHashMap<K, V> {
+    private static final int THRESHOLD = 20;
+    private static final double MAX_LOAD_FACTOR = 0.75d;
+    private static final double MIN_LOAD_FACTOR = 0.25d;
     private int size;
-    private int capacity = 10;
-    private EntryCustomHashMap<K, V>[] entries = new EntryCustomHashMap[capacity];
+    private int noOfBuckets = 10;
+    private EntryCustomHashMap<K, V>[] entries;
 
     public CustomHashMap() {
+        entries = new EntryCustomHashMap[noOfBuckets];
     }
 
-    public CustomHashMap(int capacity) {
-        this.capacity = capacity;
+    public CustomHashMap(int bucket) {
+        this.noOfBuckets = bucket;
+        entries = new EntryCustomHashMap[noOfBuckets];
     }
 
     private int hashing(int hashCode) {
-        int location = hashCode % capacity;
+        int location = hashCode % noOfBuckets;
         System.out.println("Location: " + location);
         return location;
     }
@@ -47,7 +52,55 @@ public class CustomHashMap<K, V> {
             }
             size++;
         }
+
+        resize();
     }
+
+    private void resize() {
+        if (noOfBuckets < 10 || needResize() == 0) return;
+
+        EntryCustomHashMap[] oldEntries = entries;
+        if (needResize() > 0) {
+            noOfBuckets *= 2;
+        } else {
+            noOfBuckets /= 2;
+        }
+        entries = new EntryCustomHashMap[noOfBuckets];
+
+        for (EntryCustomHashMap<K, V> entry: oldEntries) {
+            EntryCustomHashMap<K, V> t = entry;
+            while (t != null) {
+                put(t.getKey(), t.getValue());
+                t = t.getNext();
+            }
+        }
+    }
+
+    private int needResize() {
+        double loadFactor = ((double) size) / noOfBuckets / THRESHOLD;
+        int tmp = (loadFactor < MIN_LOAD_FACTOR) ? -1 : 0;
+        return (loadFactor > MAX_LOAD_FACTOR) ? 1 : tmp;
+    }
+
+    public void remove(K key) {
+        validateKey(key);
+        if (containsKey(key)) {
+            int bucket = hashing(key.hashCode());
+            EntryCustomHashMap<K, V> entry = entries[bucket];
+            if (key.equals(entry.getKey())) {
+                entries[bucket] = entry.getNext();
+            } else {
+                while (!key.equals(entry.getNext().getKey())) {
+                    entry = entry.getNext();
+                }
+                entry.setNext(entry.getNext().getNext());
+            }
+            size--;
+            resize();
+        }
+    }
+
+
 
     private EntryCustomHashMap<K, V> lookupExistingEntry(K key) {
         int bucket = hashing(key.hashCode());

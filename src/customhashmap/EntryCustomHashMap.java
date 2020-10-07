@@ -12,7 +12,7 @@ public class EntryCustomHashMap<K, V> {
         this.value = value;
     }
 
-    public Object getKey() {
+    public K getKey() {
         return key;
     }
 
